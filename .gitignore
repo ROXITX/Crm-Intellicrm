@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+node_modules/
+.next/
+storage/*
+!storage/.gitkeep
+ml/artifacts/*
+!ml/artifacts/.gitkeep
+.pytest_cache/
