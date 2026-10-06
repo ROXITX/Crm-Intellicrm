@@ -15,6 +15,9 @@ from app.services.workload import team_workload
 router = APIRouter(tags=["dashboard"])
 RANGES = {"7D": (7, "day"), "30D": (30, "day"), "90D": (90, "week"), "12M": (365, "month")}
 FUNNEL = ["new", "contacted", "qualified", "proposal", "won"]
+ACTION_ICON = {"lead.create": "lead", "lead.convert": "won", "customer.create": "customer", "ticket.create": "ticket", "payment.record": "payment",
+               "task.update": "task", "task.create": "task", "project.create": "project", "project.update": "project", "invoice.create": "invoice",
+               "invoice.issue": "invoice", "document.upload": "document"}
 ACTIONS = {"lead.create": "created lead", "lead.convert": "converted lead", "customer.create": "created customer",
            "ticket.create": "opened ticket", "payment.record": "recorded payment", "task.update": "updated task",
            "task.create": "created task", "project.create": "created project", "project.update": "updated project",
@@ -37,6 +40,15 @@ def _revenue_series(db, ctx, days, bucket):
         Lead.organization_id == ctx.org_id, Lead.deleted_at.is_(None), Lead.status.notin_(["won", "lost"]),
         Lead.created_at >= since).group_by(lb)).all()) if ctx.can("leads.read") else {}
     keys = sorted({*rev, *pipe})
+    if bucket == "month":  # continuous monthly axis (no gaps) for the stacked chart
+        end = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        keys, cur = [], end
+        for _ in range(12):
+            keys.append(cur)
+            cur = (cur - timedelta(days=1)).replace(day=1)
+        keys = sorted(keys)
+        rev = {k.astimezone(timezone.utc): v for k, v in rev.items()}
+        pipe = {k.astimezone(timezone.utc): v for k, v in pipe.items()}
     return [{"period": k.date().isoformat(), "revenue": float(rev.get(k) or 0), "pipeline": float(pipe.get(k) or 0)} for k in keys]
 
 
@@ -113,13 +125,29 @@ def dashboard(range: Literal["7D", "30D", "90D", "12M"] = "30D", ctx: Ctx = Depe
         AuditLog.organization_id == ctx.org_id, AuditLog.action.in_(list(ACTIONS)))
     if not ctx.is_owner:
         aq = aq.where(AuditLog.actor_id == ctx.user.id)
-    out["recent_activity"] = [{"actor": n or "System", "action": ACTIONS[a.action], "entity_type": a.entity_type,
-                               "entity_id": str(a.entity_id) if a.entity_id else None, "at": a.created_at.isoformat()}
-                              for a, n in db.execute(aq.order_by(AuditLog.created_at.desc()).limit(10)).all()]
+    def _detail(a):
+        d = a.after_data or a.before_data or {}
+        return next((str(d[k]) for k in ("name", "title", "subject", "invoice_number") if d.get(k)), None)
+    out["recent_activity"] = [{"actor": n or "System", "action": ACTIONS[a.action], "icon": ACTION_ICON.get(a.action, "task"), "detail": _detail(a),
+                               "entity_type": a.entity_type, "entity_id": str(a.entity_id) if a.entity_id else None, "at": a.created_at.isoformat()}
+                              for a, n in db.execute(aq.order_by(AuditLog.created_at.desc()).limit(8)).all()]
+    plist = db.execute(select(Project, Customer.name).join(Customer, Customer.id == Project.customer_id).where(
+        project_cond(db, ctx), Project.status.notin_(["archived"])).order_by(
+        (Project.status == "completed").asc(), Project.due_date.asc().nulls_last()).limit(5)).all()
+    out["projects"] = [{"id": str(p.id), "name": p.name, "customer_name": cn, "progress": float(p.progress or 0), "status": p.status, "risk_level": p.risk_level,
+                        "due_date": p.due_date.isoformat() if p.due_date else None} for p, cn in plist]
     over = sum(1 for m in out.get("team_workload", []) if m["status"] == "overloaded")
+    conv = None
+    if ctx.can("leads.read"):
+        def _rate(a, b):
+            tot, won = db.execute(select(func.count(), func.count().filter(Lead.status == "won")).where(
+                Lead.organization_id == ctx.org_id, Lead.deleted_at.is_(None), Lead.created_at >= a, Lead.created_at < b)).one()
+            return (won / tot * 100) if tot else None
+        cur_r, prev_r = _rate(d30, now + timedelta(days=1)), _rate(d60, d30)
+        conv = {"rate_pct": round(cur_r, 1) if cur_r is not None else None, "delta_pct": round(cur_r - prev_r, 1) if cur_r is not None and prev_r is not None else None}
     out["insights"] = {"customers_need_attention": sum(1 for a in attention if a["kind"] == "customer_risk"),
                        "projects_may_miss_deadline": sum(1 for a in attention if a["kind"] == "project_risk"),
-                       "overloaded_members": over}
+                       "overloaded_members": over, "lead_conversion": conv}
     out["my_work"] = {"open_tasks": db.scalar(select(func.count()).select_from(Task).where(
         task_cond(db, ctx), Task.assignee_id == ctx.user.id, Task.status.in_(["todo", "in_progress", "blocked", "review"]))),
         "assigned_tickets": db.scalar(select(func.count()).select_from(Ticket).where(

@@ -14,6 +14,11 @@ const regSchema = z.object({
   email: z.string().email("Enter a valid email"), password: z.string().min(10, "At least 10 characters"),
 });
 
+const DEMOS = [
+  { role: "Owner", who: "Rohit Sharma", email: "owner@acme-demo.example" }, { role: "Manager", who: "Priya Nair", email: "manager@acme-demo.example" },
+  { role: "Staff", who: "Meera Das", email: "staff.meera@acme-demo.example" }, { role: "Client", who: "Vikram Mehta (portal)", email: "client@acme-industries.example" },
+];
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [err, setErr] = useState("");
@@ -63,7 +68,18 @@ export default function LoginPage() {
             {mode === "login" ? "New organization? Create an account" : "Already have an account? Sign in"}
           </button>
         </div>
-        <p className="mt-4 text-center text-small text-ink-2">Demo: owner@acme-demo.example / Demo@12345 (after seeding)</p>
+        {mode === "login" && (
+          <div className="mt-5">
+            <p className="mb-2 text-center text-small text-ink-2">Demo accounts (password <code>Demo@12345</code>) - click to sign in</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMOS.map((x) => (
+                <button key={x.email} type="button" className="card px-3 py-2 text-left hover:bg-muted" onClick={() => { l.setValue("email", x.email); l.setValue("password", "Demo@12345"); void doLogin(); }}>
+                  <span className="block text-[13.5px] font-semibold">{x.role}</span><span className="block truncate text-small text-ink-2">{x.who}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

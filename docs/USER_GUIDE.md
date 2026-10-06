@@ -22,7 +22,8 @@ This guide has three parts:
 1. Open `http://localhost:3000`. You land on the sign-in page.
 2. **Existing user:** enter email and password. **New business:** click *"New organization? Create an account"* - this creates your
    organization and makes you its **Owner**.
-3. Demo data (optional, `python -m app.seed.demo`) gives you a ready-made company "Acme Services". Password for every demo user is `Demo@12345`:
+3. On the sign-in page, **demo-account buttons (Owner, Manager, Staff, Client) sign you in with one click** once the demo data is loaded.
+   Demo data (optional, `python -m app.seed.demo`) gives you a ready-made company "Acme Services". Password for every demo user is `Demo@12345`:
 
 | You are | Sign in as | What you see |
 | --- | --- | --- |
@@ -66,8 +67,8 @@ The exact rules are in `backend/app/core/scope.py`, and are enforced **on the se
 
 ### Dashboard
 Answers *what is happening, what is going wrong, what should I do?*
-* **KPI row:** Total Customers, New Leads (30 days), Active Projects, At-Risk Customers, Revenue (30 days) - with trend vs the previous 30 days.
-* **Revenue & Pipeline:** collected revenue vs open-lead pipeline value. Switch **7D / 30D / 90D / 12M**; hover for a tooltip.
+* **Greeting + KPI row:** time-aware greeting, then Total Customers, New Leads, Active Projects, At-Risk Customers, Revenue (30 days), each with an icon and trend vs the previous period.
+* **Revenue & Pipeline:** monthly revenue bars with the open-lead pipeline as a line; pick last 12 months / 90 / 30 / 7 days; hover for a tooltip.
 * **Lead Conversion Funnel:** New → Contacted → Qualified → Proposal → Won, with counts and % of the top of the funnel.
 * **Attention Required:** AI recommendations (churn, project delay), critical tickets and overdue payments. *Review* opens the entity.
 * **Project Status**, **Team Workload** (tasks and capacity per person, ⚠ when overloaded), **Recent Activity**, and the **Insights from IntelliCRM** strip.

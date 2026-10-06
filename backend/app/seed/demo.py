@@ -105,7 +105,7 @@ def seed(db):
         lead = Lead(organization_id=org.id, name=f"{rnd.choice(['Aarav', 'Diya', 'Ishaan', 'Kavya', 'Rahul', 'Neha', 'Arjun', 'Sneha'])} {rnd.choice(['Patel', 'Gupta', 'Reddy', 'Singh', 'Joshi'])}",
                     company_name=f"{rnd.choice(company)} {rnd.choice(['Corp', 'Ltd', 'Labs', 'Works'])}" if rnd.random() > 0.15 else None,
                     email=f"lead{i}@prospect.example", source=rnd.choice(sources), status=st, owner_id=rnd.choice([owner.id, manager.id, ananya.id]),
-                    estimated_value=Decimal(rnd.randrange(20, 400) * 1000), created_at=ago(rnd.randrange(1, 120)))
+                    estimated_value=Decimal(rnd.randrange(20, 400) * 1000), created_at=ago(rnd.randrange(1, 300)))
         db.add(lead); db.flush()
         n = {"new": 0, "contacted": 2, "qualified": 4, "proposal": 6, "negotiation": 8, "won": 7, "lost": 3}[st]
         for k in range(n):
@@ -196,8 +196,8 @@ def seed(db):
             customers[cust].revenue += paid
         return inv
     for cust in customers:
-        for m in range(3):
-            invoice(cust, 60 + m * 30, 30, [("Consulting services", Decimal(rnd.randrange(20, 60)), Decimal(2500)), ("Platform subscription", Decimal(1), Decimal(45000))], "paid", 1.0)
+        for m in range(6):
+            invoice(cust, 40 + m * 45 + rnd.randrange(0, 15), 30, [("Consulting services", Decimal(rnd.randrange(20, 60)), Decimal(2500)), ("Platform subscription", Decimal(1), Decimal(45000))], "paid", 1.0)
     invoice("Acme Industries", 50, 30, [("ERP rollout milestone 2", Decimal(1), Decimal(450000))], "sent", 0.0)
     invoice("Beta Systems", 49, 30, [("Cloud migration - discovery", Decimal(1), Decimal(180000))], "sent", 0.0)
     invoice("Gamma Labs", 25, 30, [("LIMS integration phase 1", Decimal(1), Decimal(220000))], "partially_paid", 0.4)
@@ -220,6 +220,12 @@ def seed(db):
                 Message(organization_id=org.id, conversation_id=conv.id, sender_id=manager.id, body="We're targeting next week; I'll share a revised plan tomorrow.", created_at=ago(1, 20)),
                 Message(organization_id=org.id, conversation_id=internal.id, sender_id=manager.id, body="Acme is unhappy - let's prioritise unblocking UAT.", created_at=ago(1))])
     db.flush()
+    feed = [(owner, "lead.create", "lead", {"name": "Rohan Patel - Acme Corp"}, 0, 2), (manager, "project.update", "project", {"name": "Homepage revision uploaded"}, 0, 3),
+            (ananya, "ticket.create", "ticket", {"subject": "Reports are still not working"}, 0, 5), (owner, "payment.record", "invoice", {"invoice_number": "INV-2026-00003"}, 1, 1),
+            (karthik, "task.update", "task", {"title": "UI design draft completed"}, 1, 4), (manager, "customer.create", "customer", {"name": "Theta Media"}, 2, 2),
+            (owner, "lead.convert", "lead", {"name": "Vertex Labs"}, 2, 6), (meera, "task.create", "task", {"title": "Content migration batch 3"}, 3, 3)]
+    for who, action, etype, data, d, h in feed:
+        db.add(AuditLog(organization_id=org.id, actor_id=who.id, action=action, entity_type=etype, entity_id=None, after_data=data, created_at=ago(d, h)))
     from app.workers.scheduler import refresh_once
     # backdate: ensure Acme's recency reflects the scenario (messages/tickets above touch nothing automatically)
     customers["Acme Industries"].last_interaction_at = ago(41)

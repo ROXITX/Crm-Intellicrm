@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --bg: #F5F7FA; --surface: #FFFFFF; --surface-muted: #F8FAFC; --sidebar: #111827; --sidebar-hover: #1F2937;
+  --bg: #F4F7FC; --surface: #FFFFFF; --surface-muted: #F8FAFC; --sidebar: #0E1A3B; --sidebar-hover: #1A2A55;
   --text: #111827; --text-secondary: #64748B; --border: #E5E7EB; --primary: #2563EB; --primary-hover: #1D4ED8;
   --success: #16A34A; --warning: #D97706; --danger: #DC2626; --info: #0EA5E9;
 }
@@ -41,7 +41,7 @@
   .badge-primary { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, white); }
   .bar { @apply h-1.5 w-full rounded-full bg-line overflow-hidden; }
   .bar > span { @apply block h-full rounded-full; }
-  .nav-item { @apply flex items-center gap-2.5 rounded-ctl px-3 py-2 text-[13.5px] text-slate-300 hover:bg-sidebar-hover hover:text-white relative; }
+  .nav-item { @apply flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-[14px] text-slate-300 hover:bg-sidebar-hover/70 hover:text-white relative; }
   .nav-item[aria-current="page"] { @apply bg-sidebar-hover text-white; }
-  .nav-item[aria-current="page"]::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--primary); }
+  
 }
