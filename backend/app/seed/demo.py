@@ -34,7 +34,7 @@ def reset(db):
     org = db.scalar(select(Organization).where(Organization.slug == DEMO_SLUG))
     if not org:
         return
-    ids = [r[0] for r in db.execute(text("select id from users where email like '%@acme-demo.example' or email like '%@acme-industries.example' or email like '%@demo-clients.example'"))]
+    ids = [r[0] for r in db.execute(text("select user_id from organization_members where organization_id = :o"), {"o": org.id})]
     for t in ["ai_recommendations", "ai_predictions", "notifications", "audit_logs", "messages", "documents", "payments"]:
         db.execute(text(f"delete from {t} where organization_id = :o"), {"o": org.id})
     db.execute(text("delete from conversation_members where conversation_id in (select id from conversations where organization_id=:o)"), {"o": org.id})
@@ -141,15 +141,15 @@ def seed(db):
         db.add(t); tasks.append(t); return t
     for k, (title, st, due) in enumerate([("Data migration scripts", "in_progress", -10), ("User acceptance testing", "blocked", -4), ("Training material", "todo", -2),
                                            ("Reports module", "in_progress", -8), ("Integration with legacy billing", "blocked", -6), ("Finalize schema", "done", -40)]):
-        task(pA, title, [ananya, meera][k % 2], st, "high" if k < 4 else "medium", due, 30 + k * 6, 12 if st == "done" else None)
+        task(pA, title, [ananya, meera][k % 2], st, "high" if k < 4 else "medium", due, 8 + k * 2, 6 if st == "done" else None)
     for k, (title, st, due) in enumerate([("Inventory servers", "done", -20), ("Provision landing zone", "in_progress", 5), ("Migrate databases", "todo", 20), ("Network cutover plan", "todo", 35), ("Security review", "review", 10)]):
-        task(pB, title, [karthik, meera][k % 2], st, "high" if k == 2 else "medium", due, 24 + k * 4)
+        task(pB, title, [karthik, meera][k % 2], st, "high" if k == 2 else "medium", due, 6 + k * 2)
     for k, (title, st, due) in enumerate([("API mapping", "in_progress", -1), ("Sample sync tests", "todo", 4), ("Vendor sign-off", "blocked", 7), ("Data validation", "todo", 9)]):
-        task(pC, title, [ananya, karthik][k % 2], st, "critical" if k == 2 else "high", due, 20 + k * 5)
-    for title, assignee, est in [("Wireframes", ananya, 16), ("GPS ingestion service", karthik, 40), ("Dashboard UI", ananya, 36)]:
+        task(pC, title, [ananya, karthik][k % 2], st, "critical" if k == 2 else "high", due, 7 + k * 2)
+    for title, assignee, est in [("Wireframes", ananya, 8), ("GPS ingestion service", karthik, 16), ("Dashboard UI", ananya, 14)]:
         task(pD, title, assignee, "todo", "medium", 25, est)
     for k in range(10):  # heavy load for Meera => overloaded
-        task(pF if k % 2 else pB, f"Content migration batch {k + 1}", meera, "todo", rnd.choice(["medium", "high"]), rnd.randrange(3, 14), 14)
+        task(pF if k % 2 else pB, f"Content migration batch {k + 1}", meera, "todo", rnd.choice(["medium", "high"]), rnd.randrange(3, 14), 9)
     task(None, "Quarterly review prep for Acme", ananya, "todo", "medium", 6, 6, cust="Acme Industries")
     db.flush()
     db.add(TaskDependency(task_id=tasks[1].id, depends_on_task_id=tasks[0].id))
@@ -186,8 +186,8 @@ def seed(db):
                       issue_date=date.today() - timedelta(days=issued_days_ago), due_date=date.today() - timedelta(days=issued_days_ago) + timedelta(days=due_days),
                       subtotal=sub, tax=tax, discount=Decimal(0), total=total)
         db.add(inv); db.flush()
-        for it, lt in lines:
-            db.add(InvoiceItem(invoice_id=inv.id, description=it.description, quantity=it.quantity, unit_price=it.unit_price, tax_rate=it.tax_rate, line_total=lt))
+        for pos, (it, lt) in enumerate(lines):
+            db.add(InvoiceItem(invoice_id=inv.id, description=it.description, quantity=it.quantity, unit_price=it.unit_price, tax_rate=it.tax_rate, line_total=lt, position=pos))
         paid = (total * Decimal(str(paid_ratio))).quantize(Decimal("0.01"))
         if paid:
             db.add(Payment(organization_id=org.id, invoice_id=inv.id, amount=paid, method="bank_transfer", status="completed", paid_at=ago(max(issued_days_ago - 5, 1)),

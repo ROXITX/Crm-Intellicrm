@@ -1,0 +1,55 @@
+# IntelliCRM development stack: docker compose up --build
+# Secrets come from .env (copy .env.example and fill it in) - never commit .env.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: intellicrm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-intellicrm}
+      POSTGRES_DB: intellicrm
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intellicrm"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment: &backend-env
+      DATABASE_URL: postgresql+psycopg://intellicrm:${POSTGRES_PASSWORD:-intellicrm}@postgres:5432/intellicrm
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes: [appdata:/data]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports: ["8000:8000"]
+
+  worker:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: ["python", "-m", "app.workers.scheduler"]
+    environment: *backend-env
+    volumes: [appdata:/data]
+    depends_on: [backend]
+
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000/api/v1/ws
+    depends_on: [backend]
+    ports: ["3000:3000"]
+
+volumes:
+  pgdata:
+  appdata:

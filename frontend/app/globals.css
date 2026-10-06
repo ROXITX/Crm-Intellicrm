@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #F5F7FA; --surface: #FFFFFF; --surface-muted: #F8FAFC; --sidebar: #111827; --sidebar-hover: #1F2937;
+  --text: #111827; --text-secondary: #64748B; --border: #E5E7EB; --primary: #2563EB; --primary-hover: #1D4ED8;
+  --success: #16A34A; --warning: #D97706; --danger: #DC2626; --info: #0EA5E9;
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body { @apply bg-bg text-ink font-sans text-body antialiased; }
+  h1 { @apply text-[26px] font-semibold leading-tight; }
+  h2 { @apply text-[18px] font-semibold; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  table { @apply w-full text-[13px]; }
+  th { @apply text-left text-small font-medium text-ink-2 px-3 py-2.5 border-b border-line bg-muted whitespace-nowrap; }
+  td { @apply px-3 py-2.5 border-b border-line align-middle; }
+  tr:last-child td { border-bottom: 0; }
+}
+
+@layer components {
+  .card { @apply bg-surface border border-line rounded-card shadow-card; }
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-ctl px-3 py-1.5 text-[13px] font-medium border border-line bg-surface text-ink hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors; }
+  .btn-primary { @apply bg-primary border-primary text-white hover:bg-primary-hover hover:border-primary-hover; }
+  .btn-danger { @apply bg-danger border-danger text-white hover:opacity-90; }
+  .btn-sm { @apply px-2 py-1 text-small; }
+  .input { @apply w-full rounded-ctl border border-line bg-surface px-3 py-1.5 text-[13px] placeholder:text-ink-2/70 focus:border-primary; }
+  .label { @apply block text-small font-medium text-ink mb-1; }
+  .skeleton { @apply animate-pulse rounded bg-line/70; }
+}
+
+@layer components {
+  .badge { @apply inline-flex items-center rounded px-1.5 py-0.5 text-[11.5px] font-medium whitespace-nowrap; }
+  .badge-neutral { color: var(--text-secondary); background: var(--surface-muted); border: 1px solid var(--border); }
+  .badge-success { color: var(--success); background: color-mix(in srgb, var(--success) 12%, white); }
+  .badge-warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 13%, white); }
+  .badge-danger { color: var(--danger); background: color-mix(in srgb, var(--danger) 11%, white); }
+  .badge-info { color: var(--info); background: color-mix(in srgb, var(--info) 12%, white); }
+  .badge-primary { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, white); }
+  .bar { @apply h-1.5 w-full rounded-full bg-line overflow-hidden; }
+  .bar > span { @apply block h-full rounded-full; }
+  .nav-item { @apply flex items-center gap-2.5 rounded-ctl px-3 py-2 text-[13.5px] text-slate-300 hover:bg-sidebar-hover hover:text-white relative; }
+  .nav-item[aria-current="page"] { @apply bg-sidebar-hover text-white; }
+  .nav-item[aria-current="page"]::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--primary); }
+}

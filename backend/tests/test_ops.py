@@ -148,3 +148,11 @@ def test_websocket_requires_valid_token(client, tokens):
             pass
     with client.websocket_connect(f"/api/v1/ws?token={tokens['manager']}") as ws:
         ws.send_text('{"type":"typing","conversation_id":"%s"}' % uuid.uuid4())
+
+
+def test_conversations_filterable_by_customer(client, H):
+    acme = T(client, H["owner"], "get", "customers", params={"q": "Acme"}).json()["items"][0]["id"]
+    got = T(client, H["manager"], "get", "conversations", params={"customer_id": acme}).json()
+    assert got and all(c["customer_id"] == acme for c in got)
+    beta = T(client, H["owner"], "get", "customers", params={"q": "Beta"}).json()["items"][0]["id"]
+    assert T(client, H["manager"], "get", "conversations", params={"customer_id": beta}).json() == []

@@ -143,3 +143,16 @@ def test_document_delete_is_soft_and_restricted(client, H):
     assert T(client, H["client"], "delete", f"documents/{doc['id']}").status_code == 403
     assert T(client, H["manager"], "delete", f"documents/{doc['id']}").status_code == 204
     assert T(client, H["owner"], "get", f"documents/{doc['id']}/download").status_code == 404
+
+
+def test_concurrent_payments_cannot_overpay(client, H):
+    """Two simultaneous full payments: the invoice row lock lets exactly one succeed."""
+    from concurrent.futures import ThreadPoolExecutor
+    iid = _invoice(client, H).json()["id"]
+    T(client, H["owner"], "post", f"invoices/{iid}/issue")
+    total = T(client, H["owner"], "get", f"invoices/{iid}").json()["balance"]
+    with ThreadPoolExecutor(4) as ex:
+        codes = list(ex.map(lambda _: T(client, H["owner"], "post", f"invoices/{iid}/payments", json={"amount": total}).status_code, range(4)))
+    assert codes.count(201) == 1, codes
+    d = T(client, H["owner"], "get", f"invoices/{iid}").json()
+    assert d["status"] == "paid" and d["amount_paid"] == total and len(d["payments"]) == 1

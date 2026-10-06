@@ -67,7 +67,8 @@ def _member(db, ctx, conv_id) -> Conversation:
 
 
 @router.get("/conversations")
-def list_conversations(ctx: Ctx = Depends(require("messages.read")), db: Session = Depends(get_db)):
+def list_conversations(customer_id: uuid.UUID | None = None, project_id: uuid.UUID | None = None,
+                       ctx: Ctx = Depends(require("messages.read")), db: Session = Depends(get_db)):
     last = (select(Message.body).where(Message.conversation_id == Conversation.id, Message.deleted_at.is_(None))
             .order_by(Message.created_at.desc()).limit(1).correlate(Conversation).scalar_subquery())
     last_at = (select(func.max(Message.created_at)).where(Message.conversation_id == Conversation.id).correlate(Conversation).scalar_subquery())
@@ -75,10 +76,12 @@ def list_conversations(ctx: Ctx = Depends(require("messages.read")), db: Session
         Message.conversation_id == Conversation.id, Message.deleted_at.is_(None), Message.sender_id != ctx.user.id,
         (ConversationMember.last_read_at.is_(None)) | (Message.created_at > ConversationMember.last_read_at)
     ).correlate(Conversation, ConversationMember).scalar_subquery())
+    conds = [Conversation.organization_id == ctx.org_id, ConversationMember.user_id == ctx.user.id]
+    if customer_id: conds.append(Conversation.customer_id == customer_id)
+    if project_id: conds.append(Conversation.project_id == project_id)
     rows = db.execute(select(Conversation, last, last_at, unread, Customer.name).join(
         ConversationMember, ConversationMember.conversation_id == Conversation.id).outerjoin(
-        Customer, Customer.id == Conversation.customer_id).where(
-        Conversation.organization_id == ctx.org_id, ConversationMember.user_id == ctx.user.id
+        Customer, Customer.id == Conversation.customer_id).where(*conds
     ).order_by(func.coalesce(last_at, Conversation.created_at).desc())).all()
     return [ser(c, extra={"last_message": l, "last_message_at": la.isoformat() if la else None, "unread": u or 0,
                           "customer_name": cn}) for c, l, la, u, cn in rows]

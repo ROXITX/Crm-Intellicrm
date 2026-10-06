@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from app.ai import synthetic as syn
 from app.core.config import settings
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 SPECS = {  # name -> (algorithm label, feature list)
     "lead_conversion": ("logistic_regression", syn.LEAD_FEATURES),
     "customer_churn": ("random_forest", syn.CHURN_FEATURES),

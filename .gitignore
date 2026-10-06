@@ -9,3 +9,4 @@ storage/*
 ml/artifacts/*
 !ml/artifacts/.gitkeep
 .pytest_cache/
+*.tsbuildinfo

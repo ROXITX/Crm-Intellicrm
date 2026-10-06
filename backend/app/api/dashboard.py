@@ -37,7 +37,7 @@ def _revenue_series(db, ctx, days, bucket):
         Lead.organization_id == ctx.org_id, Lead.deleted_at.is_(None), Lead.status.notin_(["won", "lost"]),
         Lead.created_at >= since).group_by(lb)).all()) if ctx.can("leads.read") else {}
     keys = sorted({*rev, *pipe})
-    return [{"period": k.date().isoformat(), "revenue": float(rev.get(k, 0)), "pipeline": float(pipe.get(k, 0))} for k in keys]
+    return [{"period": k.date().isoformat(), "revenue": float(rev.get(k) or 0), "pipeline": float(pipe.get(k) or 0)} for k in keys]
 
 
 @router.get("/dashboard")

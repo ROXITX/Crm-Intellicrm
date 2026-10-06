@@ -83,7 +83,7 @@ def get_invoice(db, ctx, iid, lock=False) -> Invoice:
 
 
 def _items(db, inv):
-    return db.scalars(select(InvoiceItem).where(InvoiceItem.invoice_id == inv.id).order_by(InvoiceItem.id)).all()
+    return db.scalars(select(InvoiceItem).where(InvoiceItem.invoice_id == inv.id).order_by(InvoiceItem.position)).all()
 
 
 def effective_status(inv: Invoice) -> str:
@@ -139,9 +139,9 @@ def create_invoice(body: InvoiceIn, ctx: Ctx = Depends(require("invoices.write")
                   discount=body.discount, total=total, currency=body.currency.upper())
     db.add(inv)
     db.flush()
-    for it, line_total in lines:
+    for pos, (it, line_total) in enumerate(lines):
         db.add(InvoiceItem(invoice_id=inv.id, description=it.description, quantity=it.quantity, unit_price=it.unit_price,
-                           tax_rate=it.tax_rate, line_total=line_total))
+                           tax_rate=it.tax_rate, line_total=line_total, position=pos))
     db.flush()
     audit(db, ctx, "invoice.create", "invoice", inv.id, after=snapshot(inv))
     return ser(inv, extra={"items": [ser(i) for i in _items(db, inv)]})
@@ -179,9 +179,9 @@ def edit_invoice(invoice_id: uuid.UUID, body: InvoicePatch, ctx: Ctx = Depends(r
             for old in _items(db, inv):
                 db.delete(old)
             db.flush()
-            for it, lt in lines:
+            for pos, (it, lt) in enumerate(lines):
                 db.add(InvoiceItem(invoice_id=inv.id, description=it.description, quantity=it.quantity, unit_price=it.unit_price,
-                                   tax_rate=it.tax_rate, line_total=lt))
+                                   tax_rate=it.tax_rate, line_total=lt, position=pos))
     audit(db, ctx, "invoice.update", "invoice", inv.id, before, snapshot(inv))
     return ser(inv)
 

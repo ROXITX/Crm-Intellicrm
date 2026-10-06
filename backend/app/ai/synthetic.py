@@ -84,7 +84,7 @@ def sentiment_data(n=1800, seed=4):
     rows = []
     for _ in range(n):
         label = r.choice(["positive", "neutral", "negative"], p=[0.3, 0.35, 0.35])
-        pool = {"positive": _POS, "neutral": _NEU, "negative": _NEG}[label]
+        pool = {"positive": _POS, "neutral": _NEU, "negative": _NEG + _CRIT + _HIGH[:3]}[label]
         parts = list(r.choice(pool, size=r.integers(1, 3), replace=False)) + [str(r.choice(_TOPICS))]
         if r.random() < 0.15:  # label noise via mixed signal
             parts.append(str(r.choice(_NEU)))
@@ -102,6 +102,8 @@ def priority_data(n=2400, seed=5):
     for _ in range(n):
         label = r.choice(list(pools), p=[0.1, 0.25, 0.35, 0.3])
         parts = [str(r.choice(pools[label])), str(r.choice(_TOPICS))]
+        if r.random() < 0.12:  # appreciation / thanks messages are never urgent
+            label, parts = "low", [str(r.choice(_POS)), str(r.choice(_TOPICS))]
         if r.random() < 0.2:
             parts.append(str(r.choice(_NEG if label in ("critical", "high") else _NEU)))
         r.shuffle(parts)

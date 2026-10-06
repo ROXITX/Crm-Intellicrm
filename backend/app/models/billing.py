@@ -36,6 +36,7 @@ class InvoiceItem(Base):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0, server_default="0")
     line_total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     __table_args__ = (CheckConstraint("quantity > 0 AND unit_price >= 0 AND tax_rate >= 0", name="ck_items_nonneg"),)
 
 

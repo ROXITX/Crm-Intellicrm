@@ -121,7 +121,7 @@ def _owners_and_managers(db, org_id):
 # --------------------------------------------------------------------------- LEADS
 LEAD_LABELS = {
     "interactions_30d": lambda v: f"{v:.0f} interaction(s) in the last 30 days",
-    "days_since_last_interaction": lambda v: f"Last interaction {v:.0f} day(s) ago",
+    "days_since_last_interaction": lambda v: "No interactions recorded yet" if v >= 90 else f"Last interaction {v:.0f} day(s) ago",
     "inquiries": lambda v: f"{v:.0f} inquiry/inquiries received",
     "proposal_requested": lambda v: "Requested a proposal" if v else "No proposal requested yet",
     "pricing_page_visits": lambda v: f"{v:.0f} pricing-page interaction(s)",
@@ -171,7 +171,7 @@ def score_lead(db: Session, lead: Lead) -> dict:
     if level == "high":
         actions.append("Prioritise this lead: schedule a call or send the proposal within 48 hours.")
     if row["days_since_last_interaction"] > 14 and lead.status not in ("won", "lost"):
-        actions.append(f"Re-engage: no interaction for {row['days_since_last_interaction']:.0f} days.")
+        actions.append("Make first contact: no interactions are recorded yet." if row["days_since_last_interaction"] >= 90 else f"Re-engage: no interaction for {row['days_since_last_interaction']:.0f} days.")
     if not row["proposal_requested"] and level != "low":
         actions.append("Offer a tailored proposal to move the lead forward.")
     if not actions:

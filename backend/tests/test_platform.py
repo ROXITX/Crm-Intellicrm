@@ -123,3 +123,10 @@ def test_health_endpoint_and_request_id(client):
 def test_unhandled_errors_do_not_leak(client, H):
     r = client.get("/api/v1/customers/not-a-uuid", headers=H["owner"])
     assert r.status_code == 422 and "Traceback" not in r.text
+
+
+def test_dashboard_survives_leads_without_value(client, H):
+    """Regression: SUM(estimated_value) is NULL for a bucket whose leads have no value."""
+    assert T(client, H["owner"], "post", "leads", json={"name": "No Value Lead"}).status_code == 201
+    for r in ("7D", "30D", "90D", "12M"):
+        assert T(client, H["owner"], "get", "dashboard", params={"range": r}).status_code == 200
